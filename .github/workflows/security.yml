@@ -31,11 +31,15 @@ jobs:
  #        args: detect --redact --no-git 
  #         args: "detect --source . --verbose"
 
+ #     - name: Gitleaks Scan
+ #       uses: gitleaks/gitleaks-action@v2
+ #       with:
+ #         args: "detect --source . --no-git --redact --verbose"
       - name: Gitleaks Scan
         uses: gitleaks/gitleaks-action@v2
         with:
-          args: "detect --source . --no-git --redact --verbose"
-
+        config-path: ""
+        command: "detect --source . --no-git --redact --verbose"
   # ------------------------------------------------------------------
   # 2. Trivy: 라이브러리(Dependency) 취약점 탐지
   # ------------------------------------------------------------------
