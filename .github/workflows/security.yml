@@ -28,8 +28,8 @@ jobs:
         with:
           # -v: 상세 로그 출력, --redact: 비밀키 값은 마스킹 처리
  #         args: detect --redact -v 
-           args: detect --redact --no-git 
-
+ #        args: detect --redact --no-git 
+          args: "detect --source . --verbose"
   # ------------------------------------------------------------------
   # 2. Trivy: 라이브러리(Dependency) 취약점 탐지
   # ------------------------------------------------------------------
