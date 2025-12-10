@@ -17,6 +17,7 @@ def vulnerable_logic(user_input):
     query = f"SELECT * FROM users WHERE username = '{user_input}'" 
     cursor.execute(query) 
     a = 100
+    b = 200
 
     # [CodeQL Test 2: Command Injection]
     # 사용자 입력을 쉘 명령어에 그대로 전달 (shell=True)
