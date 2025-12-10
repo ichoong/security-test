@@ -6,7 +6,7 @@ import requests
 # [Gitleaks Test]
 # 실제 AWS 키 형식(AKIA...)을 흉내 낸 가짜 키입니다.
 # Gitleaks는 이 패턴을 보고 "AWS Secret Key가 코드에 있다"고 경고합니다.
-AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE" 
+AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7werserEXAMPLE" 
 AWS_SECRET_ACCESS_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 
 def vulnerable_logic(user_input):

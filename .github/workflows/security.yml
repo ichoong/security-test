@@ -22,14 +22,20 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # [중요] 전체 커밋 히스토리를 가져와야 탐지 가능
-
-      - name: Run Gitleaks
-        uses: zricethezav/gitleaks-action@v2
-        with:
+# 안되는 내용
+ #     - name: Run Gitleaks
+ #       uses: zricethezav/gitleaks-action@v2
+ #       with:
           # -v: 상세 로그 출력, --redact: 비밀키 값은 마스킹 처리
  #         args: detect --redact -v 
  #        args: detect --redact --no-git 
-          args: "detect --source . --verbose"
+ #         args: "detect --source . --verbose"
+
+ - name: Gitleaks Scan
+  uses: gitleaks/gitleaks-action@v2
+  with:
+    args: detect --source . --no-git --redact --verbose
+
   # ------------------------------------------------------------------
   # 2. Trivy: 라이브러리(Dependency) 취약점 탐지
   # ------------------------------------------------------------------
