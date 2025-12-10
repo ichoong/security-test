@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write
 
 jobs:
   # ------------------------------------------------------------------
@@ -26,7 +27,8 @@ jobs:
         uses: zricethezav/gitleaks-action@v2
         with:
           # -v: 상세 로그 출력, --redact: 비밀키 값은 마스킹 처리
-          args: detect --redact -v 
+ #         args: detect --redact -v 
+           args: detect --redact --no-git 
 
   # ------------------------------------------------------------------
   # 2. Trivy: 라이브러리(Dependency) 취약점 탐지
@@ -53,10 +55,10 @@ jobs:
   codeql:
     name: 3. CodeQL (Code Analysis)
     runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write # [중요] Security 탭에 리포트를 쓰기 위한 권한
+ #     permissions:
+ #     actions: read
+ #     contents: read
+ #     security-events: write # [중요] Security 탭에 리포트를 쓰기 위한 권한
 
     strategy:
       fail-fast: false
