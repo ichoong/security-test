@@ -3,6 +3,7 @@ import subprocess
 import sqlite3
 import requests
 
+#--- test#
 # --- GITLEAKS TEST ---
 DB_PASSWORD = "hardcoded_password_123"   # ❌ Gitleaks가 탐지할 비밀정보
 
