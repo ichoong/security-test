@@ -1,28 +1,73 @@
-import os
-import subprocess
 import sqlite3
-import requests
+import subprocess
+from flask import Flask, request
+import pickle
+import os
 
-# [Gitleaks Test]
-# 실제 AWS 키 형식(AKIA...)을 흉내 낸 가짜 키입니다.
-# Gitleaks는 이 패턴을 보고 "AWS Secret Key가 코드에 있다"고 경고합니다.
-AWS_ACCESS_KEY_ID = "AKIAIdd1dOSdddFODNN7werserEXAMPLE" 
-AWS_SECRET_ACCESS_KEY = "wJalrddddddX1UtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+app = Flask(__name__)
 
-def vulnerable_logic(user_input):
-    # [CodeQL Test 1: SQL Injection]
-    # 사용자 입력을 검증 없이 f-string으로 쿼리에 넣는 전형적인 취약점
+# ----------------------------------------------------------
+# 1. GITLEAKS가 100% 탐지하는 하드코딩 Secret
+# ----------------------------------------------------------
+
+# GitHub Personal Token
+GITHUB_TOKEN = "ghp_1234567890abcdefghijklmnopqrstuv"
+
+# JWT Secret key (규칙에 걸림)
+JWT_SECRET = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.SECRET123.SECRET456"
+
+tes = "sss"
+# Private key 조각
+PRIVATE_KEY = """
+-----BEGIN PRIVATE KEY-----
+MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAMRANDOM12345EXAMPLE
+-----END PRIVATE KEY-----
+"""
+
+
+# ----------------------------------------------------------
+# 2. CODEQL 탐지: SQL Injection
+# ----------------------------------------------------------
+@app.route("/user")
+def get_user():
+    username = request.args.get("username", "")
+    query = "SELECT * FROM users WHERE username = '" + username + "';"  # ❌ SQL Injection
     conn = sqlite3.connect("test.db")
-    cursor = conn.cursor()
-    query = f"SELECT * FROM users WHERE username = '{user_input}'" 
-    cursor.execute(query) 
-    a = 100
-    b = 200
-    c = 100
+    cur = conn.cursor()
+    result = cur.execute(query).fetchall()
+    return {"result": result}
 
-    # [CodeQL Test 2: Command Injection]
-    # 사용자 입력을 쉘 명령어에 그대로 전달 (shell=True)
-    subprocess.call(f"echo {user_input}", shell=True)
+
+# ----------------------------------------------------------
+# 3. CODEQL 탐지: Command Injection
+# ----------------------------------------------------------
+@app.route("/run")
+def run_cmd():
+    cmd = request.args.get("cmd", "ls")
+    result = subprocess.check_output("sh -c " + cmd, shell=True)  # ❌ Command Injection
+    return {"output": result.decode()}
+
+
+# ----------------------------------------------------------
+# 4. CODEQL 탐지: Insecure Deserialization
+# ----------------------------------------------------------
+@app.route("/load")
+def load_obj():
+    data = request.args.get("data", "")  # base64 string이라고 가정
+    obj = pickle.loads(bytes(data, "utf-8"))  # ❌ Unsafe Deserialization
+    return {"loaded": str(obj)}
+
+
+# ----------------------------------------------------------
+# 5. CODEQL 탐지: Path Traversal
+# ----------------------------------------------------------
+@app.route("/read")
+def read_file():
+    filename = request.args.get("file", "test.txt")
+    filepath = "/tmp/uploads/" + filename  # ❌ Path Traversal
+    with open(filepath, "r") as f:
+        return f.read()
+
 
 if __name__ == "__main__":
-    vulnerable_logic("admin' OR '1'='1")
+    app.run(debug=True)
