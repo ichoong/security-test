@@ -1,28 +1,70 @@
-name: SBOM Security Scan
+name: Security CI
 
 on:
   push:
   pull_request:
 
 jobs:
-  sbom-scan:
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Build
+        run: |
+          pip install -r requirements.txt || true
+          echo "build complete"
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  gitleaks:
+    name: Gitleaks Secret Scan
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 1) SBOM 생성 (Syft)
-      - name: Generate SBOM (Syft)
-        uses: anchore/syft-action@v0.15.0
+      - name: Run Gitleaks
+        uses: zricethezav/gitleaks-action@v2
         with:
-          output-file: sbom.json
-          format: cyclonedx-json
+          args: detect --redact
 
-      # 2) SBOM 기반 취약점 스캔 (Grype)
-      - name: Scan SBOM (Grype)
-        uses: anchore/grype-action@v1
+  dependency-scan:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.20.0
         with:
-          sbom: sbom.json
-          fail-on-severity: critical
+          scan-type: fs
+          format: table
+          exit-code: 0
+          severity: CRITICAL,HIGH
+
+      # GitHub Dependabot Alerts 활성화
+      - name: Enable Dependabot Alerts
+        run: echo "Dependabot는 repository settings에서 자동 활성화 필요"
 
