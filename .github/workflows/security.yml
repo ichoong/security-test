@@ -1,70 +1,83 @@
-name: Security CI
+name: Integrated Security Check
 
 on:
   push:
+    branches: [ "main", "master", "feature/security" ]
   pull_request:
+    branches: [ "main", "master" ]
+
+permissions:
+  contents: read
 
 jobs:
+  # ------------------------------------------------------------------
+  # 1. Gitleaks: 소스코드 내 비밀번호/키 탐지
+  # ------------------------------------------------------------------
+  gitleaks:
+    name: 1. Gitleaks (Secret Scan)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # [중요] 전체 커밋 히스토리를 가져와야 탐지 가능
+
+      - name: Run Gitleaks
+        uses: zricethezav/gitleaks-action@v2
+        with:
+          # -v: 상세 로그 출력, --redact: 비밀키 값은 마스킹 처리
+          args: detect --redact -v 
+
+  # ------------------------------------------------------------------
+  # 2. Trivy: 라이브러리(Dependency) 취약점 탐지
+  # ------------------------------------------------------------------
+  dependency-scan:
+    name: 2. Trivy (Dependency Scan)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Run Trivy scanner
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: 'fs'           # 파일 시스템 스캔
+          scan-ref: '.'             # 현재 폴더 기준
+          format: 'table'           # 로그에 표 형식으로 출력
+          exit-code: 1              # [중요] 취약점 발견 시 에러 발생(CI 실패 처리)
+          severity: 'CRITICAL,HIGH' # 심각한 문제만 체크 (테스트 시엔 MEDIUM 추가 가능)
+
+  # ------------------------------------------------------------------
+  # 3. CodeQL: 코드 로직(SQLi, Cmd Injection) 정적 분석
+  # ------------------------------------------------------------------
   codeql:
-    name: CodeQL Analysis
+    name: 3. CodeQL (Code Analysis)
     runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
-      security-events: write
+      security-events: write # [중요] Security 탭에 리포트를 쓰기 위한 권한
 
     strategy:
       fail-fast: false
       matrix:
-        language: [python]
+        language: [ 'python' ]
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
+          # security-extended: 더 민감한 보안 규칙 적용 (테스트용으로 적합)
+          queries: security-extended 
 
-      - name: Build
+      # Python 의존성을 설치해주면 분석 정확도가 높아짐
+      - name: Install dependencies
         run: |
           pip install -r requirements.txt || true
-          echo "build complete"
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
-
-  gitleaks:
-    name: Gitleaks Secret Scan
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Run Gitleaks
-        uses: zricethezav/gitleaks-action@v2
-        with:
-          args: detect --redact
-
-  dependency-scan:
-    name: Dependency Security Scan
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.20.0
-        with:
-          scan-type: fs
-          format: table
-          exit-code: 0
-          severity: CRITICAL,HIGH
-
-      # GitHub Dependabot Alerts 활성화
-      - name: Enable Dependabot Alerts
-        run: echo "Dependabot는 repository settings에서 자동 활성화 필요"
-
